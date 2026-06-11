@@ -12,10 +12,12 @@ import {
   getDocs,
 } from 'firebase/firestore';
 
+import './App.css';
 import { db } from './firebase';
 
+const auth = getAuth();
+
 function App() {
-  const auth = getAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,13 +28,15 @@ function App() {
   const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
-    onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
 
       if (currentUser) {
         fetchLogs();
       }
     });
+
+    return unsubscribe;
   }, []);
 
   const login = async () => {
@@ -61,103 +65,132 @@ function App() {
   };
 
   const filteredLogs = logs.filter((item) =>
-  item.userEmail?.toLowerCase().includes(searchText.toLowerCase()) ||
-  item.userId?.toLowerCase().includes(searchText.toLowerCase()) ||
-  item.sop?.toLowerCase().includes(searchText.toLowerCase())
-);
+    item.userEmail?.toLowerCase().includes(searchText.toLowerCase()) ||
+    item.userId?.toLowerCase().includes(searchText.toLowerCase()) ||
+    item.sop?.toLowerCase().includes(searchText.toLowerCase())
+  );
 
-  // LOGIN SCREEN
   if (!user) {
     return (
-      <div style={{ padding: 50 }}>
-        <h1>Admin Login</h1>
+      <main className="app-shell login-shell">
+        <section className="login-card" aria-labelledby="login-title">
+          <div className="brand-pill">
+            <span className="brand-dot" />
+            SOP Tracker
+          </div>
 
-        <input
-          placeholder="Email"
-          onChange={(e) => setEmail(e.target.value)}
-          style={{
-            display: 'block',
-            marginBottom: 10,
-            padding: 10,
-          }}
-        />
+          <h1 id="login-title">Admin Login</h1>
+          <p className="login-copy">
+            Review completed SOP entries in a brighter green and yellow workspace.
+          </p>
 
-        <input
-          type="password"
-          placeholder="Password"
-          onChange={(e) => setPassword(e.target.value)}
-          style={{
-            display: 'block',
-            marginBottom: 10,
-            padding: 10,
-          }}
-        />
+          <div className="login-form">
+            <label className="input-label" htmlFor="email">
+              Email
+              <input
+                id="email"
+                className="app-input"
+                placeholder="admin@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
 
-        <button onClick={login}>
-          Login
-        </button>
-      </div>
+            <label className="input-label" htmlFor="password">
+              Password
+              <input
+                id="password"
+                className="app-input"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+
+            <button className="app-button" onClick={login} type="button">
+              Login
+            </button>
+          </div>
+        </section>
+      </main>
     );
   }
 
-  // DASHBOARD
   return (
-    <div style={{ padding: 20 }}>
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center' 
-  }}>
-    <h1>SOP Admin Dashboard</h1>
+    <main className="app-shell">
+      <section className="dashboard-card" aria-labelledby="dashboard-title">
+        <header className="dashboard-header">
+          <div className="dashboard-title-row">
+            <span className="dashboard-icon" aria-hidden="true">✓</span>
+            <div>
+              <div className="brand-pill">
+                <span className="brand-dot" />
+                Admin Workspace
+              </div>
+              <h1 className="dashboard-title" id="dashboard-title">
+                SOP Admin Dashboard
+              </h1>
+              <p className="dashboard-subtitle">
+                Track employee submissions with a cleaner, nature-inspired interface.
+              </p>
+            </div>
+          </div>
 
-    <button
-      onClick={() => signOut(auth)}
-      style={{
-        marginBottom: 20,
-        padding: 10,
-      }}
-    >
-      Logout
-    </button>
-  </div>
+          <button
+            className="app-button secondary"
+            onClick={() => signOut(auth)}
+            type="button"
+          >
+            Logout
+          </button>
+        </header>
 
-      <input
-  placeholder="Search by employee email"
-  value={searchText}
-  onChange={(e) => setSearchText(e.target.value)}
-  style={{
-    padding: 10,
-    marginBottom: 20,
-    width: 300,
-  }}
-/>
-
-      {filteredLogs.map((item) => (
-        <div
-          key={item.id}
-          style={{
-            border: '1px solid #ccc',
-            padding: 15,
-            marginBottom: 20,
-            borderRadius: 10,
-          }}
-        >
-          <h3>{item.sop}</h3>
-
-          <p>
-            Employee:
-            {' '}
-            {item.userEmail || item.userId}
-          </p>
-
-          <img
-            src={item.imageUrl}
-            alt="SOP"
-            width="300"
-          />
+        <div className="toolbar">
+          <div className="search-wrap">
+            <span className="search-icon" aria-hidden="true">🔎</span>
+            <input
+              className="app-input"
+              placeholder="Search by employee email, ID, or SOP"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
+          <span className="stats-pill">
+            {filteredLogs.length} of {logs.length} entries
+          </span>
         </div>
-      ))}
-    </div>
+
+        {filteredLogs.length === 0 ? (
+          <div className="empty-state">
+            No SOP logs match your search yet.
+          </div>
+        ) : (
+          <div className="logs-grid">
+            {filteredLogs.map((item) => (
+              <article className="log-card" key={item.id}>
+                <div className="log-image-wrap">
+                  <img
+                    className="log-image"
+                    src={item.imageUrl}
+                    alt={item.sop ? `${item.sop} SOP evidence` : 'SOP evidence'}
+                  />
+                  <span className="log-badge">SOP Log</span>
+                </div>
+
+                <h3>{item.sop}</h3>
+
+                <p className="employee-line">
+                  <strong>Employee:</strong>
+                  {' '}
+                  {item.userEmail || item.userId}
+                </p>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
 
